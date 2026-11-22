@@ -1,0 +1,5 @@
+# Bibliotecas Python do Editor V2 (todas gratuitas).
+# Instale com:  pip install -r requirements.txt
+#
+# faster-whisper: IA que transcreve a fala com o tempo de cada palavra.
+faster-whisper>=1.1.0

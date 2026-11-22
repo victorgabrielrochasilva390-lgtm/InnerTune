@@ -1,0 +1,6 @@
+# Vídeos e arquivos gerados NÃO vão para o GitHub (são grandes e pessoais).
+entrada/
+saida/
+projeto/
+__pycache__/
+*.pyc
