@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Editor V1</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap">
+<style>
+:root{--bg:#f1f2f5;--pn:#fff;--tx:#14161c;--mu:#667;--bd:#d9dce3;--ac:#e2306b;--cut:#e5484d;--fx:#7a5af8;--im:#0f9d8a;--in:#eceef3;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1015;--pn:#171a22;--tx:#eceef4;--mu:#98a0b3;--bd:#2a2f3b;--ac:#ff5c8f;--cut:#ff6b6b;--fx:#9b87ff;--im:#2fd1b8;--in:#1f232d}}
+:root[data-theme="dark"]{--bg:#0e1015;--pn:#171a22;--tx:#eceef4;--mu:#98a0b3;--bd:#2a2f3b;--ac:#ff5c8f;--cut:#ff6b6b;--fx:#9b87ff;--im:#2fd1b8;--in:#1f232d}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.45 "Space Grotesk",system-ui,sans-serif;padding:12px}
+h1{font-size:20px;margin:0}
+header{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.wrap{display:grid;gap:12px;grid-template-columns:1fr;max-width:1100px;margin:auto}
+@media(min-width:860px){.wrap{grid-template-columns:1.2fr 1fr}}
+.box{background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:10px}
+.stage{position:relative;overflow:hidden;border-radius:8px;background:#000;aspect-ratio:16/9}
+.zoom{position:absolute;inset:0;transition:transform .35s ease-out}
+video{width:100%;height:100%;object-fit:contain;display:block}
+#cap{position:absolute;left:0;right:0;bottom:12%;text-align:center;font-weight:700;font-size:clamp(22px,5vw,44px);color:#fff;text-shadow:0 2px 6px #000,0 0 2px #000;pointer-events:none}
+#cap.hl{color:#ffd23f}
+#ov{position:absolute;inset:0;opacity:0;pointer-events:none;background:#fff}
+#tl{position:relative;height:44px;margin-top:10px;background:var(--in);border-radius:6px;cursor:pointer;overflow:hidden}
+#tl i{position:absolute;top:0;bottom:0}
+#tl .c{background:var(--cut);opacity:.6;top:4px;bottom:24px}
+#tl .f{width:4px;background:var(--fx);top:22px;bottom:4px}
+#tl .m{width:4px;background:var(--im);top:22px;bottom:4px}
+#ph{width:2px;background:var(--ac);top:0;bottom:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+button,select,input,textarea{font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--bd);border-radius:6px;padding:7px 10px}
+button{cursor:pointer;background:var(--ac);color:#fff;border:0;font-weight:600}
+button.g{background:var(--in);color:var(--tx);border:1px solid var(--bd)}
+input[type=file]{max-width:100%}
+.tabs{display:flex;gap:4px;overflow-x:auto;margin-bottom:8px}
+.tabs button{background:var(--in);color:var(--mu);border:1px solid var(--bd);white-space:nowrap}
+.tabs button.on{background:var(--tx);color:var(--bg)}
+.panel{display:none}.panel.on{display:block}
+textarea{width:100%;min-height:90px;resize:vertical}
+.it{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--bd);cursor:pointer}
+.it small{color:var(--mu);display:block}
+.it b{font-weight:600}
+.x{background:none;color:var(--mu);padding:2px 8px;border:0}
+.mu{color:var(--mu);font-size:13px}
+.wd{max-height:170px;overflow:auto}
+@media(prefers-reduced-motion:reduce){.zoom{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Editor V1</h1>
+  <input type="file" id="file" accept="video/*,audio/*">
+</header>
+<div class="wrap">
+  <section class="box">
+    <div class="stage">
+      <div class="zoom" id="zm"><video id="v" controls playsinline></video></div>
+      <div id="cap"></div>
+      <div id="ov"></div>
+    </div>
+    <div id="tl"><i id="ph"></i></div>
+    <div class="row">
+      <button class="g" id="now">Tempo atual: <span id="t">0:00.0</span></button>
+      <label class="mu"><input type="checkbox" id="skip" checked> pular cortes na prévia</label>
+    </div>
+    <p class="mu" style="margin:8px 0 0">Vermelho: cortes. Roxo: efeitos. Verde: imagens de apoio. Toque na barra para ir ao ponto.</p>
+  </section>
+
+  <section class="box">
+    <div class="tabs" id="tabs">
+      <button data-t="s" class="on">Legendas</button><button data-t="c">Cortes</button><button data-t="i">Imagens</button><button data-t="f">Efeitos</button><button data-t="p">Plano</button>
+    </div>
+
+    <div class="panel on" id="p-s">
+      <textarea id="txt" placeholder="Cole a transcrição. Sem tempos: as palavras são distribuídas pela duração do vídeo. Com tempos: uma linha por trecho, ex. 0:03.2 AGORA vai começar"></textarea>
+      <div class="row"><button id="gen">Gerar legendas</button><span class="mu" id="sn"></span></div>
+      <p class="mu">Palavras em MAIÚSCULAS, com ! ou ? ficam destacadas em amarelo.</p>
+      <div class="wd" id="sl"></div>
+    </div>
+
+    <div class="panel" id="p-c">
+      <div class="row"><input id="c1" size="5" placeholder="início"><input id="c2" size="5" placeholder="fim">
+      <button class="g" id="cs">Início = agora</button><button class="g" id="ce">Fim = agora</button></div>
+      <div class="row"><input id="cm" placeholder="Motivo (silêncio, erro, repetição...)" style="flex:1"><button id="ca">Adicionar corte</button></div>
+      <div id="cl"></div>
+    </div>
+
+    <div class="panel" id="p-i">
+      <div class="row"><input id="it" size="5" placeholder="tempo"><button class="g" id="ia0">Agora</button>
+      <input id="id" placeholder="Cena / imagem de apoio" style="flex:1"></div>
+      <div class="row"><input id="iq" placeholder="Termo de busca ou prompt da imagem" style="flex:1"><button id="ia">Adicionar</button></div>
+      <div id="il"></div>
+    </div>
+
+    <div class="panel" id="p-f">
+      <div class="row"><input id="ft" size="5" placeholder="tempo"><button class="g" id="fa0">Agora</button>
+      <select id="fk"><option value="zoom">Zoom</option><option value="som">Som</option><option value="trans">Transição</option></select>
+      <select id="fd"></select><select id="fi"><option value="1">leve</option><option value="2" selected>média</option><option value="3">forte</option></select></div>
+      <div class="row"><button id="fa">Adicionar efeito</button><button class="g" id="ft2">Testar</button></div>
+      <div id="fl"></div>
+    </div>
+
+    <div class="panel" id="p-p">
+      <p class="mu">O plano completo da edição. Copie para guardar, ou cole um plano salvo e carregue.</p>
+      <textarea id="pj" style="min-height:200px"></textarea>
+      <div class="row"><button id="cp">Copiar plano</button><button class="g" id="ld">Carregar plano colado</button><span class="mu" id="pm"></span></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), v=$('#v');
+let S={subs:[],cuts:[],imgs:[],fx:[]};
+const OPT={zoom:['in','out'],som:['whoosh','impacto','riser'],trans:['fade','flash','glitch']};
+const fmt=t=>{t=Math.max(0,t||0);return Math.floor(t/60)+':'+(t%60).toFixed(1).padStart(4,'0')};
+const num=s=>{s=String(s).trim().replace(',','.');const m=s.match(/^(\d+):(\d+(?:\.\d+)?)$/);return m?+m[1]*60+ +m[2]:parseFloat(s)};
+const dur=()=>v.duration||60;
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function save(){try{localStorage.setItem('ev1',JSON.stringify(S))}catch(e){}}
+try{const o=JSON.parse(localStorage.getItem('ev1')||'null');if(o&&o.subs)S=o}catch(e){}
+
+$('#file').onchange=e=>{const f=e.target.files[0];if(f){v.src=URL.createObjectURL(f);v.onloadedmetadata=render}};
+$('#tabs').onclick=e=>{const t=e.target.dataset.t;if(!t)return;document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b===e.target));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));if(t==='p')plan()};
+$('#now').onclick=()=>{};
+
+/* Legendas */
+$('#gen').onclick=()=>{
+  const raw=$('#txt').value.trim();if(!raw)return;
+  const lines=raw.split(/\n+/),timed=lines.every(l=>/^\d+:\d+/.test(l.trim()));
+  let out=[];
+  if(timed){
+    const ch=lines.map(l=>{const m=l.trim().match(/^(\S+)\s+(.*)$/);return{t:num(m[1]),w:m[2].split(/\s+/)}});
+    ch.forEach((c,i)=>{const end=i+1<ch.length?ch[i+1].t:c.t+c.w.length*.4,per=(end-c.t)/c.w.length;
+      c.w.forEach((w,j)=>out.push({s:c.t+j*per,e:c.t+(j+1)*per,w}))});
+  }else{
+    const ws=raw.split(/\s+/),per=dur()/ws.length;
+    out=ws.map((w,i)=>({s:i*per,e:(i+1)*per,w}));
+  }
+  out.forEach(o=>o.hl=/[!?]$/.test(o.w)||(/^[A-ZÀ-Ú]{3,}[!?.,]*$/.test(o.w)));
+  S.subs=out;save();render();
+};
+
+/* Cortes / Imagens / Efeitos */
+$('#cs').onclick=()=>$('#c1').value=v.currentTime.toFixed(1);
+$('#ce').onclick=()=>$('#c2').value=v.currentTime.toFixed(1);
+$('#ca').onclick=()=>{const s=num($('#c1').value),e=num($('#c2').value);if(!(e>s))return;S.cuts.push({s,e,m:$('#cm').value||'sem motivo'});S.cuts.sort((a,b)=>a.s-b.s);$('#cm').value='';save();render()};
+$('#ia0').onclick=()=>$('#it').value=v.currentTime.toFixed(1);
+$('#ia').onclick=()=>{const t=num($('#it').value);if(isNaN(t))return;S.imgs.push({t,d:$('#id').value,q:$('#iq').value});S.imgs.sort((a,b)=>a.t-b.t);$('#id').value=$('#iq').value='';save();render()};
+$('#fa0').onclick=()=>$('#ft').value=v.currentTime.toFixed(1);
+function fdFill(){$('#fd').innerHTML=OPT[$('#fk').value].map(o=>'<option>'+o+'</option>').join('')}
+$('#fk').onchange=fdFill;fdFill();
+const curFx=()=>({t:num($('#ft').value),k:$('#fk').value,d:$('#fd').value,i:+$('#fi').value});
+$('#fa').onclick=()=>{const f=curFx();if(isNaN(f.t))return;S.fx.push(f);S.fx.sort((a,b)=>a.t-b.t);save();render()};
+$('#ft2').onclick=()=>run({t:0,k:$('#fk').value,d:$('#fd').value,i:+$('#fi').value});
+
+function list(el,arr,fn){
+  el.innerHTML='';
+  arr.forEach((a,i)=>{const r=document.createElement('div');r.className='it';
+    const [h,sm,tm]=fn(a);r.innerHTML='<div><b>'+esc(h)+'</b><small>'+esc(sm)+'</small></div><button class="x" title="Remover">✕</button>';
+    r.onclick=e=>{if(e.target.classList.contains('x')){arr.splice(i,1);save();render()}else v.currentTime=tm};
+    el.appendChild(r)});
+}
+function render(){
+  $('#sn').textContent=S.subs.length?S.subs.length+' palavras':'';
+  const sl=$('#sl');sl.innerHTML='';
+  S.subs.slice(0,400).forEach(s=>{const b=document.createElement('button');b.className='g';b.style.margin='2px';b.textContent=s.w;if(s.hl)b.style.color='var(--ac)';b.onclick=()=>v.currentTime=s.s;sl.appendChild(b)});
+  list($('#cl'),S.cuts,c=>[fmt(c.s)+' até '+fmt(c.e),c.m,c.s]);
+  list($('#il'),S.imgs,m=>[fmt(m.t)+'  '+m.d,m.q,m.t]);
+  list($('#fl'),S.fx,f=>[fmt(f.t)+'  '+f.k+' / '+f.d,'intensidade '+['','leve','média','forte'][f.i],f.t]);
+  const D=dur(),tl=$('#tl');tl.querySelectorAll('i:not(#ph)').forEach(n=>n.remove());
+  const add=(c,a,w)=>{const n=document.createElement('i');n.className=c;n.style.left=(a/D*100)+'%';if(w)n.style.width=Math.max(.4,w/D*100)+'%';tl.appendChild(n)};
+  S.cuts.forEach(c=>add('c',c.s,c.e-c.s));S.fx.forEach(f=>add('f',f.t));S.imgs.forEach(m=>add('m',m.t));
+}
+$('#tl').onclick=e=>{const r=e.currentTarget.getBoundingClientRect();if(v.duration)v.currentTime=(e.clientX-r.left)/r.width*v.duration};
+
+/* Efeitos na prévia */
+let ac;
+function tone(type,i){
+  try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime,vol=.08*i;
+    o.connect(g);g.connect(ac.destination);
+    if(type==='impacto'){o.type='sine';o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(40,t+.35);g.gain.setValueAtTime(vol*3,t);g.gain.exponentialRampToValueAtTime(.001,t+.4);o.start(t);o.stop(t+.4)}
+    else if(type==='riser'){o.type='sawtooth';o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(1600,t+1);g.gain.setValueAtTime(.001,t);g.gain.linearRampToValueAtTime(vol,t+1);g.gain.linearRampToValueAtTime(.001,t+1.05);o.start(t);o.stop(t+1.1)}
+    else{o.type='triangle';o.frequency.setValueAtTime(1400,t);o.frequency.exponentialRampToValueAtTime(200,t+.3);g.gain.setValueAtTime(vol*1.5,t);g.gain.exponentialRampToValueAtTime(.001,t+.32);o.start(t);o.stop(t+.35)}
+  }catch(e){}
+}
+function run(f){
+  if(f.k==='zoom'){const z=$('#zm'),k=1+.08*f.i;z.style.transform='scale('+(f.d==='out'?1/k:k)+')';setTimeout(()=>z.style.transform='',900)}
+  else if(f.k==='som')tone(f.d,f.i);
+  else{const o=$('#ov');o.style.transition='none';o.style.background=f.d==='flash'?'#fff':'#000';o.style.opacity=.25*f.i+.15;
+    requestAnimationFrame(()=>{o.style.transition='opacity .4s';o.style.opacity=0});
+    if(f.d==='glitch'){const z=$('#zm');let n=0;const id=setInterval(()=>{z.style.transform='translateX('+((n%2?-1:1)*5*f.i)+'px)';if(++n>5){clearInterval(id);z.style.transform=''}},50)}}
+}
+
+/* Loop de reprodução */
+let last=0;
+function tick(){
+  const t=v.currentTime;
+  $('#t').textContent=fmt(t);$('#ph').style.left=(t/dur()*100)+'%';
+  if($('#skip').checked&&!v.paused){const c=S.cuts.find(c=>t>=c.s&&t<c.e);if(c){v.currentTime=c.e;last=c.e}}
+  if(!v.paused&&t>last)S.fx.forEach(f=>{if(f.t>last&&f.t<=t)run(f)});
+  last=t;
+  const s=S.subs.find(s=>t>=s.s&&t<s.e),cap=$('#cap');
+  cap.textContent=s?s.w:'';cap.className=s&&s.hl?'hl':'';
+  requestAnimationFrame(tick);
+}
+v.addEventListener('seeked',()=>last=v.currentTime);
+tick();
+
+/* Plano */
+function plan(){const o={versao:'V1',duracao:+dur().toFixed(1),legendas:S.subs,cortes:S.cuts,imagens:S.imgs,efeitos:S.fx};$('#pj').value=JSON.stringify(o,null,1);$('#pm').textContent=S.cuts.length+' cortes, '+S.imgs.length+' imagens, '+S.fx.length+' efeitos'}
+$('#cp').onclick=async()=>{try{await navigator.clipboard.writeText($('#pj').value);$('#pm').textContent='Copiado.'}catch(e){$('#pj').select();$('#pm').textContent='Selecionado: use copiar do celular.'}};
+$('#ld').onclick=()=>{try{const o=JSON.parse($('#pj').value);S={subs:o.legendas||[],cuts:o.cortes||[],imgs:o.imagens||[],fx:o.efeitos||[]};save();render();$('#pm').textContent='Plano carregado.'}catch(e){$('#pm').textContent='JSON inválido. Confira o texto colado.'}};
+render();
+</script>
+</body>
+</html>
